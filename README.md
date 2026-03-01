@@ -124,6 +124,12 @@ LanPaint-diffusers/
 
 ---
 
+## To-Do
+
+- [ ] **Edit-model reference image switch**: Add an option to control whether edit-style models (e.g. Flux Klein, Qwen) use the reference image as input at inference.
+
+---
+
 ## Citation
 
 If you use this repository or LanPaint in your work, please cite:
