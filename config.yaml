@@ -1,0 +1,23 @@
+model:
+  sd1_5_path: "./models/stable-diffusion-v1-5"
+  controlnet_canny_path: "./models/sd_controlnet_canny"
+
+control_injection:
+  r_channel_start: 0.0
+  r_channel_end: 1.0
+  g_channel_start: 0.1
+  g_channel_end: 0.5
+  b_channel_start: 0.0
+  b_channel_end: 0.6
+
+inference:
+  num_inference_steps: 35
+  guidance_scale: 7.5
+  seed: -1
+
+data:
+  input_path: "./data/oxford_polyEdge_dataset"
+  
+output:
+  save_path: "./results/Oxford3"
+  debug_shape_mismatch: true
