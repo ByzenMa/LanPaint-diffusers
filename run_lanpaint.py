@@ -38,6 +38,10 @@ from lanpaint_pipeline.registry import (
     get_model_spec,
     list_models,
 )
+from lanpaint_pipeline.zimage_controlnet_pipeline import (
+    ControlInjectConfig,
+    LanPaintZImageControlNetPipeline,
+)
 
 
 def parse_args():
@@ -73,6 +77,18 @@ def parse_args():
                         help="Save preprocessed network inputs (image/mask) to this directory")
     parser.add_argument("--output", "-o", type=str, default=None,
                         help="Output path (default: results/<model>/lanpaint_output.png)")
+    parser.add_argument("--polyedge", type=str, default=None,
+                        help="Polyedge RGB image path (required when --model z-image-controlnet)")
+    parser.add_argument("--controlnet-model-id", type=str, default=None,
+                        help="Override ControlNet model id/path for z-image-controlnet")
+    parser.add_argument("--sd15-model-id", type=str, default="runwayml/stable-diffusion-v1-5",
+                        help="Base SD1.5 model id/path for z-image-controlnet refinement stage")
+    parser.add_argument("--control-r-start", type=float, default=0.0)
+    parser.add_argument("--control-r-end", type=float, default=1.0)
+    parser.add_argument("--control-g-start", type=float, default=0.3)
+    parser.add_argument("--control-g-end", type=float, default=0.6)
+    parser.add_argument("--control-b-start", type=float, default=0.0)
+    parser.add_argument("--control-b-end", type=float, default=0.3)
 
     # Generation parameters
     parser.add_argument("--height", type=int, default=None)
@@ -175,25 +191,58 @@ def main():
 
     # Build pipeline and run
     lp_pipe = LanPaintInpaintPipeline(adapter, config=lp_config)
-
-    result = lp_pipe(
-        prompt=args.prompt,
-        image=args.image,
-        mask_image=args.mask,
-        outpaint_padding=args.outpaint_pad,
-        save_preprocess_dir=args.save_preprocess_dir,
-        negative_prompt=args.negative_prompt,
-        height=args.height,
-        width=args.width,
-        guidance_scale=guidance_scale,
-        num_inference_steps=num_steps,
-        seed=args.seed,
-    )
+    if args.model == "z-image-controlnet":
+        if not args.polyedge:
+            raise ValueError("--polyedge is required when --model z-image-controlnet")
+        controlnet_model_id = args.controlnet_model_id or "lllyasviel/sd-controlnet-canny"
+        zc_pipe = LanPaintZImageControlNetPipeline.from_components(
+            lp_pipe,
+            sd15_model_id=args.sd15_model_id,
+            controlnet_model_id=controlnet_model_id,
+            torch_dtype=torch.float16,
+        )
+        zc_pipe.inject_cfg = ControlInjectConfig(
+            r_range=(args.control_r_start, args.control_r_end),
+            g_range=(args.control_g_start, args.control_g_end),
+            b_range=(args.control_b_start, args.control_b_end),
+        )
+        final_image = zc_pipe(
+            prompt=args.prompt,
+            image=args.image,
+            mask_image=args.mask,
+            polyedge_image=args.polyedge,
+            negative_prompt=args.negative_prompt,
+            guidance_scale=guidance_scale,
+            num_inference_steps=num_steps,
+            seed=args.seed,
+            lanpaint_kwargs={
+                "outpaint_padding": args.outpaint_pad,
+                "save_preprocess_dir": args.save_preprocess_dir,
+                "height": args.height,
+                "width": args.width,
+            },
+        )
+        images = [final_image]
+    else:
+        result = lp_pipe(
+            prompt=args.prompt,
+            image=args.image,
+            mask_image=args.mask,
+            outpaint_padding=args.outpaint_pad,
+            save_preprocess_dir=args.save_preprocess_dir,
+            negative_prompt=args.negative_prompt,
+            height=args.height,
+            width=args.width,
+            guidance_scale=guidance_scale,
+            num_inference_steps=num_steps,
+            seed=args.seed,
+        )
+        images = result.images
 
     # Save output
     output_path = args.output or f"results/{args.model}/lanpaint_output.png"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    result.images[0].save(output_path)
+    images[0].save(output_path)
     print(f"Saved to {output_path}")
 
 
