@@ -8,6 +8,7 @@ Training-free diffusion inpainting and outpainting with [LanPaint](https://githu
 - **Multi-model**: One CLI and one pipeline API for all supported backends. Currently supported:
   - **Flux2 Klein** (`flux-klein`)
   - **Z-Image Turbo** (`z-image`)
+  - **LanPaint + Z-Image + ControlNet** (`z-image-controlnet`)
   - **Stable Diffusion 3** (`sd3`)
   - **Qwen Image** (`qwen`) — thanks [@spartanz51](https://github.com/spartanz51)
 - **Extensible**: More LanPaint-supported models will be added over time; new backends are integrated via the adapter registry.
@@ -62,6 +63,7 @@ The script includes ready-to-run examples for:
 **Quick reference** (same CLI, custom args):
 
 - Inpaint: `--model <name> --prompt "..." --image <path-or-URL> --mask <path-or-URL>`
+- Inpaint + polyedge control: `--model z-image-controlnet --prompt "..." --image <path> --mask <path> --polyedge <path>`
 - Outpaint: `--model <name> --prompt "..." --image <path> --outpaint-pad l200r200t200b200` (no `--mask`; do not use `--height`/`--width` with `--outpaint-pad`)
 
 **Useful options**: `--guidance-scale`, `--num-steps`, `--seed`, `--output <path>`, `--model-id <hf-or-local-path>`, `--save-preprocess-dir <dir>`, `--local-files-only`
