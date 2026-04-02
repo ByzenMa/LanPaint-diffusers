@@ -1,31 +1,39 @@
 #!/usr/bin/env bash
-# Unified LanPaint CLI examples
-# Usage: uncomment one command block, or copy and customize it.
+set -euo pipefail
 
-# List all registered models
-# python run_lanpaint.py --list-models
+# LanPaint + Z-Image + ControlNet 示例脚本（放在仓库根目录）
+# 说明：脚本在根目录；运行结果保存到 results/new/ 目录。
+# 使用前请将以下路径替换为你的本地文件。
 
-# Flux2 Klein (URL example)
-# python run_lanpaint.py --model flux-klein \
-#     --prompt "change building's window light color to blue" \
-#     --image "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_24/Original_No_Mask.png" \
-#     --mask "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_24/Masked_Load_Me_in_Loader.png"
+IMAGE_PATH="path/to/original.png"
+MASK_PATH="path/to/mask.png"
+POLYEDGE_PATH="path/to/polyedge.png"
 
-# Flux2 Klein (local paths)
-# python run_lanpaint.py --model flux-klein \
-#     --prompt "change window light to blue" \
-#     --image path/to/image.png \
-#     --mask path/to/mask.png
+mkdir -p results/new
 
-# SD3
-# python run_lanpaint.py --model sd3 \
-#     --lp-n-steps 5 \
-#     --guidance-scale 5.5 \
-#     --num-steps 30 \
-#     --prompt "a bottle with a rainbow galaxy inside it on top of a wooden table on a snowy mountain top with the ocean and clouds in the background" \
-#     --image "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_9/Original_No_Mask.png" \
-#     --mask "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_9/Masked_Load_Me_in_Loader.png"
+python run_lanpaint.py \
+  --model z-image-controlnet \
+  --prompt "restore the removed subject region with natural background continuation" \
+  --image "${IMAGE_PATH}" \
+  --mask "${MASK_PATH}" \
+  --polyedge "${POLYEDGE_PATH}" \
+  --controlnet-model-id "lllyasviel/sd-controlnet-canny" \
+  --sd15-model-id "runwayml/stable-diffusion-v1-5" \
+  --control-r-start 0.0 \
+  --control-r-end 1.0 \
+  --control-g-start 0.3 \
+  --control-g-end 0.6 \
+  --control-b-start 0.0 \
+  --control-b-end 0.3 \
+  --lp-n-steps 5 \
+  --lp-friction 15.0 \
+  --lp-lambda 16.0 \
+  --guidance-scale 5.0 \
+  --num-steps 20 \
+  --seed 0 \
+  --output results/new/lanpaint_zimage_controlnet_output.png
 
+printf "Done. Output saved to results/new/lanpaint_zimage_controlnet_output.png\n"
 # Z-Image Turbo Inpaint
 # python run_lanpaint.py --model z-image \
 #     --lp-n-steps 5 \
