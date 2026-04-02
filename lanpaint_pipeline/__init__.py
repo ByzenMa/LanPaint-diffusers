@@ -47,6 +47,7 @@ from lanpaint_pipeline.zimage_controlnet_pipeline import (
     LanPaintZImageControlNetPipeline,
     build_polyedge_with_refine,
 )
+from lanpaint_pipeline.mask_tool import PolyEdgeMaskTool, PolyEdgeArtifacts
 
 __all__ = [
     "ModelAdapter",
@@ -70,4 +71,6 @@ __all__ = [
     "ControlInjectConfig",
     "LanPaintZImageControlNetPipeline",
     "build_polyedge_with_refine",
+    "PolyEdgeMaskTool",
+    "PolyEdgeArtifacts",
 ]
