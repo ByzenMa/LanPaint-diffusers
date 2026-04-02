@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# LanPaint + Z-Image + ControlNet 示例脚本（放在仓库根目录）
-# 说明：脚本在根目录；运行结果保存到 results/new/ 目录。
-# 使用前请将以下路径替换为你的本地文件。
+# LanPaint + Z-Image + ControlNet 专用脚本
+# 说明：脚本在根目录；结果输出到 results/controlnet/。
 
 IMAGE_PATH="path/to/original.png"
 MASK_PATH="path/to/mask.png"
 POLYEDGE_PATH="path/to/polyedge.png"
+PROMPT="restore the removed subject region with natural background continuation"
 
-mkdir -p results/new
+mkdir -p results/controlnet
 
 python run_lanpaint.py \
   --model z-image-controlnet \
-  --prompt "restore the removed subject region with natural background continuation" \
+  --prompt "${PROMPT}" \
   --image "${IMAGE_PATH}" \
   --mask "${MASK_PATH}" \
   --polyedge "${POLYEDGE_PATH}" \
@@ -31,6 +31,6 @@ python run_lanpaint.py \
   --guidance-scale 5.0 \
   --num-steps 20 \
   --seed 0 \
-  --output results/new/lanpaint_zimage_controlnet_output.png
+  --output results/controlnet/lanpaint_zimage_controlnet_output.png
 
-printf "Done. Output saved to results/new/lanpaint_zimage_controlnet_output.png\n"
+printf "Done. Output saved to results/controlnet/lanpaint_zimage_controlnet_output.png\n"
