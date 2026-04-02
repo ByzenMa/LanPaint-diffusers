@@ -35,8 +35,8 @@
      --guidance-scale 1.0 \
      --num-steps 9 \
      --prompt "Latina female with thick wavy hair, white shirt, harbor boats and pastel houses behind. Breezy seaside light, warm tones, cinematic close-up." \
-     --image "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_21/Original_No_Mask.png" \
-     --mask "https://raw.githubusercontent.com/scraed/LanPaint/master/examples/Example_21/Masked_Load_Me_in_Loader.png"
+     --image "results/example/Original_No_Mask.png" \
+     --mask "results/example/Masked_Load_Me_in_Loader.png"
 
 # Z-Image Turbo Outpaint
 # python run_lanpaint.py --model z-image \
