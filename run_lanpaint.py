@@ -53,7 +53,7 @@ def parse_args():
     # Model selection
     parser.add_argument("--model", type=str, default="flux-klein",
                         help="Model key (e.g. flux-klein, sd3). Use --list-models to see all.")
-    parser.add_argument("--model-id", type=str, default=None,
+    parser.add_argument("--model-id", type=str, default='model/Z-Image-Turbo',
                         help="Override HuggingFace model ID or path to local checkpoint")
     parser.add_argument("--local-files-only", action="store_true",
                         help="Load from local path only (no Hub fetch); use with --model-id /path/to/checkpoint")
