@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
 
 from diffusers import ControlNetModel, StableDiffusionControlNetInpaintPipeline, UniPCMultistepScheduler
 
@@ -126,15 +126,15 @@ class LanPaintZImageControlNetPipeline:
 
         # Stage-2: SD1.5 ControlNet multi-channel polyedge refinement.
         polyedge = self._to_pil_image(polyedge_image).convert("RGB")
-        mask_pil = self._load_mask(mask_image)
+        mask_stage2 = ImageOps.invert(self._load_mask(mask_image))
         target_size = stage1_image.size
 
         # Keep stage-2 inputs spatially aligned with stage-1 output.
         # LanPaint preprocess may resize image/mask, so polyedge and mask must follow.
         if polyedge.size != target_size:
             polyedge = polyedge.resize(target_size, Image.BICUBIC)
-        if mask_pil.size != target_size:
-            mask_pil = mask_pil.resize(target_size, Image.NEAREST)
+        if mask_stage2.size != target_size:
+            mask_stage2 = mask_stage2.resize(target_size, Image.NEAREST)
 
         r, g, b = polyedge.split()
         generator = torch.Generator(device=self.device).manual_seed(seed)
@@ -153,7 +153,7 @@ class LanPaintZImageControlNetPipeline:
             prompt=prompt,
             negative_prompt=negative_prompt,
             image=stage1_image,
-            mask_image=mask_pil,
+            mask_image=mask_stage2,
             control_image=[r.convert("RGB"), g.convert("RGB"), b.convert("RGB")],
             control_guidance_start=control_guidance_start,
             control_guidance_end=control_guidance_end,
