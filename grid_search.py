@@ -22,6 +22,7 @@ import math
 import os
 import shlex
 import subprocess
+import time
 from typing import List, Sequence, Tuple
 
 
@@ -91,8 +92,15 @@ def run_grid_search(args):
     ))
     sampled_grid = _uniform_sample_grid(grid, args.sample_ratio)
 
-    print(f"Total combinations: {len(grid)} | sampled: {len(sampled_grid)} | ratio: {args.sample_ratio}")
+    total_points = len(grid)
+    sampled_points = len(sampled_grid)
+    print("=" * 80)
+    print(f"Grid points (total): {total_points}")
+    print(f"Sample points (uniform): {sampled_points}")
+    print(f"Sample ratio: {args.sample_ratio}")
+    print("=" * 80)
 
+    t0 = time.time()
     for idx, (lp_n_steps, lp_friction, lp_lambda, guidance_scale, num_steps) in enumerate(sampled_grid, start=1):
         filename = build_filename(
             model=args.model,
@@ -137,7 +145,10 @@ def run_grid_search(args):
                 "--control-b-end", str(args.control_b_end),
             ])
 
-        print(f"[{idx}/{len(sampled_grid)}] Running: {' '.join(shlex.quote(c) for c in cmd)}")
+        progress = 100.0 * idx / sampled_points
+        elapsed = time.time() - t0
+        print(f"[{idx}/{sampled_points}] ({progress:6.2f}%) elapsed={elapsed:8.1f}s")
+        print(f"Running: {' '.join(shlex.quote(c) for c in cmd)}")
         subprocess.run(cmd, check=True)
 
 
