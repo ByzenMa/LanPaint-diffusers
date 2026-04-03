@@ -25,7 +25,6 @@ import subprocess
 import time
 from typing import List, Sequence, Tuple
 
-
 def _build_range(start: int, end: int, step: int) -> List[int]:
     return list(range(start, end + 1, step))
 
@@ -68,6 +67,49 @@ def build_filename(model: str, lp_n_steps: int, lp_friction: float, lp_lambda: f
     )
 
 
+def build_filename_with_metric(
+    model: str,
+    lp_n_steps: int,
+    lp_friction: float,
+    lp_lambda: float,
+    guidance_scale: float,
+    num_steps: int,
+    metric_name: str,
+    metric_value: float,
+) -> str:
+    return (
+        f"{model}"
+        f"_lpn{lp_n_steps}"
+        f"_fr{_fmt_float(lp_friction)}"
+        f"_lam{_fmt_float(lp_lambda)}"
+        f"_cfg{_fmt_float(guidance_scale)}"
+        f"_steps{num_steps}"
+        f"_{metric_name}{_fmt_float(metric_value)}.png"
+    )
+
+
+def compute_psnr(reference_path: str, output_path: str) -> float:
+    from PIL import Image, ImageChops
+
+    ref = Image.open(reference_path).convert("RGB")
+    out = Image.open(output_path).convert("RGB")
+
+    if out.size != ref.size:
+        out = out.resize(ref.size, Image.BICUBIC)
+
+    diff = ImageChops.difference(ref, out)
+    hist = diff.histogram()
+    sq_err = 0.0
+    for channel in range(3):
+        offset = channel * 256
+        sq_err += sum((value * value) * hist[offset + value] for value in range(256))
+
+    mse = sq_err / float(ref.size[0] * ref.size[1] * 3)
+    if mse == 0:
+        return 100.0
+    return 20.0 * math.log10(255.0 / math.sqrt(mse))
+
+
 def run_grid_search(args):
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -98,9 +140,13 @@ def run_grid_search(args):
     print(f"Grid points (total): {total_points}")
     print(f"Sample points (uniform): {sampled_points}")
     print(f"Sample ratio: {args.sample_ratio}")
+    print(f"Eval metric: {args.eval_metric}")
     print("=" * 80)
 
     t0 = time.time()
+    best_metric = float("-inf")
+    best_file = ""
+    best_params = ""
     for idx, (lp_n_steps, lp_friction, lp_lambda, guidance_scale, num_steps) in enumerate(sampled_grid, start=1):
         filename = build_filename(
             model=args.model,
@@ -151,6 +197,40 @@ def run_grid_search(args):
         print(f"Running: {' '.join(shlex.quote(c) for c in cmd)}")
         subprocess.run(cmd, check=True)
 
+        if args.eval_metric == "psnr":
+            metric_value = compute_psnr(args.image, out_path)
+        else:
+            raise ValueError(f"Unsupported --eval-metric: {args.eval_metric}")
+
+        metric_filename = build_filename_with_metric(
+            model=args.model,
+            lp_n_steps=lp_n_steps,
+            lp_friction=lp_friction,
+            lp_lambda=lp_lambda,
+            guidance_scale=guidance_scale,
+            num_steps=num_steps,
+            metric_name=args.eval_metric,
+            metric_value=metric_value,
+        )
+        metric_out_path = os.path.join(args.output_dir, metric_filename)
+        os.replace(out_path, metric_out_path)
+
+        params_text = (
+            f"lpn={lp_n_steps}, fr={lp_friction}, lam={lp_lambda}, "
+            f"cfg={guidance_scale}, steps={num_steps}"
+        )
+
+        if metric_value > best_metric:
+            best_metric = metric_value
+            best_file = metric_filename
+            best_params = params_text
+
+        print(
+            f"Current metric: {args.eval_metric.upper()}={metric_value:.4f} | "
+            f"Best: {args.eval_metric.upper()}={best_metric:.4f} | "
+            f"Best file: {best_file} | Best params: {best_params}"
+        )
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Grid search launcher for LanPaint runs")
@@ -167,6 +247,12 @@ def parse_args():
         type=float,
         default=1.0,
         help="Uniform sampling ratio over full grid in (0,1], e.g. 0.2 means 20%% of combinations.",
+    )
+    parser.add_argument(
+        "--eval-metric",
+        choices=["psnr"],
+        default="psnr",
+        help="Evaluation metric against input image. Higher is better.",
     )
 
     parser.add_argument("--controlnet-model-id", default=None)
