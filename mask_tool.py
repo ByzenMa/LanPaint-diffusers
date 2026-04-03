@@ -48,6 +48,9 @@ def extract_mask_and_polyedge(source_image_path: str, output_dir: str, predictor
     source = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
     combined_mask = get_segmentation_mask(predictor, source)
+    # 按照 Masked_Load_Me_in_Loader 的习惯，调换黑白语义（0 <-> 255）
+    # 注意这里只调整导出的 mask 可视化，不影响后续 polyedge 生成逻辑。
+    combined_mask_swapped = cv2.bitwise_not(combined_mask)
     outline_edge = generate_edge_skeleton(combined_mask)
     segmentation_mask_fine = fill_skeleton_region(outline_edge)
 
@@ -74,7 +77,7 @@ def extract_mask_and_polyedge(source_image_path: str, output_dir: str, predictor
         "polyedge": os.path.join(output_dir, "polyEdge.png"),
     }
 
-    Image.fromarray(combined_mask).save(paths["mask"])
+    Image.fromarray(combined_mask_swapped).save(paths["mask"])
     Image.fromarray(outline_edge).save(paths["outline_edge"])
     Image.fromarray(segmentation_mask_fine).save(paths["segmentation_mask_fine"])
     Image.fromarray(subject).save(paths["subject"])
