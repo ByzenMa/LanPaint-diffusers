@@ -122,6 +122,14 @@ class LanPaintZImageControlNetPipeline:
         # Stage-2: SD1.5 ControlNet multi-channel polyedge refinement.
         polyedge = self._to_pil_image(polyedge_image).convert("RGB")
         mask_pil = self._load_mask(mask_image)
+        target_size = stage1_image.size
+
+        # Keep stage-2 inputs spatially aligned with stage-1 output.
+        # LanPaint preprocess may resize image/mask, so polyedge and mask must follow.
+        if polyedge.size != target_size:
+            polyedge = polyedge.resize(target_size, Image.BICUBIC)
+        if mask_pil.size != target_size:
+            mask_pil = mask_pil.resize(target_size, Image.NEAREST)
 
         r, g, b = polyedge.split()
         generator = torch.Generator(device=self.device).manual_seed(seed)
