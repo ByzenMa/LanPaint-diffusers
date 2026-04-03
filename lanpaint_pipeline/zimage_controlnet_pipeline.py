@@ -44,7 +44,12 @@ class LanPaintZImageControlNetPipeline:
         controlnet_model_id: str,
         torch_dtype: torch.dtype = torch.float16,
     ) -> "LanPaintZImageControlNetPipeline":
-        controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch_dtype)
+        # Build 3 controlnets (R/G/B) so channel windows can be controlled independently.
+        controlnet = [
+            ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch_dtype),
+            ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch_dtype),
+            ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch_dtype),
+        ]
         control_pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained(
             sd15_model_id,
             controlnet=controlnet,
@@ -86,17 +91,6 @@ class LanPaintZImageControlNetPipeline:
         ratio = step_i / float(total_steps - 1)
         return 1.0 if (rng[0] <= ratio < rng[1]) else 0.0
 
-    def _build_dynamic_scales(self, num_inference_steps: int):
-        rr, gr, br = self.inject_cfg.r_range, self.inject_cfg.g_range, self.inject_cfg.b_range
-        return [
-            [
-                self._compute_scale(i, num_inference_steps, rr),
-                self._compute_scale(i, num_inference_steps, gr),
-                self._compute_scale(i, num_inference_steps, br),
-            ]
-            for i in range(num_inference_steps)
-        ]
-
     def __call__(
         self,
         *,
@@ -130,9 +124,17 @@ class LanPaintZImageControlNetPipeline:
         mask_pil = self._load_mask(mask_image)
 
         r, g, b = polyedge.split()
-        dynamic_scales = self._build_dynamic_scales(num_inference_steps)
-
         generator = torch.Generator(device=self.device).manual_seed(seed)
+        control_guidance_start = [
+            self.inject_cfg.r_range[0],
+            self.inject_cfg.g_range[0],
+            self.inject_cfg.b_range[0],
+        ]
+        control_guidance_end = [
+            self.inject_cfg.r_range[1],
+            self.inject_cfg.g_range[1],
+            self.inject_cfg.b_range[1],
+        ]
 
         result = self.control_pipe(
             prompt=prompt,
@@ -140,9 +142,9 @@ class LanPaintZImageControlNetPipeline:
             image=stage1_image,
             mask_image=mask_pil,
             control_image=[r.convert("RGB"), g.convert("RGB"), b.convert("RGB")],
-            control_guidance_start=0.0,
-            control_guidance_end=1.0,
-            controlnet_conditioning_scale=dynamic_scales,
+            control_guidance_start=control_guidance_start,
+            control_guidance_end=control_guidance_end,
+            controlnet_conditioning_scale=[1.0, 1.0, 1.0],
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
             generator=generator,
