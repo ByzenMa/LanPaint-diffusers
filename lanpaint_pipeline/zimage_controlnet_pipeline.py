@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -103,6 +104,7 @@ class LanPaintZImageControlNetPipeline:
         num_inference_steps: int = 20,
         seed: int = 0,
         lanpaint_kwargs: Optional[dict] = None,
+        save_visualize_dir: Optional[str] = None,
     ) -> Image.Image:
         lanpaint_kwargs = lanpaint_kwargs or {}
 
@@ -118,6 +120,9 @@ class LanPaintZImageControlNetPipeline:
             **lanpaint_kwargs,
         )
         stage1_image = lp_out.images[0]
+        if save_visualize_dir:
+            os.makedirs(save_visualize_dir, exist_ok=True)
+            stage1_image.save(os.path.join(save_visualize_dir, "stage1_lanpaint_zimage.png"))
 
         # Stage-2: SD1.5 ControlNet multi-channel polyedge refinement.
         polyedge = self._to_pil_image(polyedge_image).convert("RGB")
@@ -157,6 +162,9 @@ class LanPaintZImageControlNetPipeline:
             num_inference_steps=num_inference_steps,
             generator=generator,
         ).images[0]
+        if save_visualize_dir:
+            os.makedirs(save_visualize_dir, exist_ok=True)
+            result.save(os.path.join(save_visualize_dir, "stage2_controlnet_refine.png"))
 
         return result
 

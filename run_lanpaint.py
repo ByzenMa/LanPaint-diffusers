@@ -191,6 +191,7 @@ def main():
 
     # Build pipeline and run
     lp_pipe = LanPaintInpaintPipeline(adapter, config=lp_config)
+    output_path = args.output or f"results/{args.model}/lanpaint_output.png"
     if args.model == "z-image-controlnet":
         if not args.polyedge:
             raise ValueError("--polyedge is required when --model z-image-controlnet")
@@ -221,6 +222,7 @@ def main():
                 "height": args.height,
                 "width": args.width,
             },
+            save_visualize_dir=os.path.dirname(output_path),
         )
         images = [final_image]
     else:
@@ -240,7 +242,6 @@ def main():
         images = result.images
 
     # Save output
-    output_path = args.output or f"results/{args.model}/lanpaint_output.png"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     images[0].save(output_path)
     print(f"Saved to {output_path}")
