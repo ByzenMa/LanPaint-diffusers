@@ -150,6 +150,15 @@ register_model("z-image", ModelSpec(
     default_params={"guidance_scale": 5.0, "num_inference_steps": 20},
 ))
 
+register_model("z-image-controlnet", ModelSpec(
+    name="Z-Image Turbo (isolated adapter for ControlNet route)",
+    pipeline_cls_path="diffusers.ZImageImg2ImgPipeline",
+    adapter_cls_path="lanpaint_pipeline.adapters.z_image_controlnet.ZImageControlNetAdapter",
+    default_model_id="Tongyi-MAI/Z-Image-Turbo",
+    default_dtype=torch.bfloat16,
+    default_params={"guidance_scale": 5.0, "num_inference_steps": 20},
+))
+
 register_model("qwen", ModelSpec(
     name="Qwen Image Edit",
     pipeline_cls_path="diffusers.QwenImageEditPlusPipeline",
