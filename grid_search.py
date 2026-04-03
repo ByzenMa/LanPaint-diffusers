@@ -141,6 +141,7 @@ def run_grid_search(args):
     print(f"Sample points (uniform): {sampled_points}")
     print(f"Sample ratio: {args.sample_ratio}")
     print(f"Eval metric: {args.eval_metric}")
+    print(f"PSNR threshold: {args.psnr_threshold}")
     print("=" * 80)
 
     t0 = time.time()
@@ -213,7 +214,11 @@ def run_grid_search(args):
             metric_value=metric_value,
         )
         metric_out_path = os.path.join(args.output_dir, metric_filename)
-        os.replace(out_path, metric_out_path)
+        keep_image = metric_value >= args.psnr_threshold
+        if keep_image:
+            os.replace(out_path, metric_out_path)
+        else:
+            os.remove(out_path)
 
         params_text = (
             f"lpn={lp_n_steps}, fr={lp_friction}, lam={lp_lambda}, "
@@ -225,8 +230,9 @@ def run_grid_search(args):
             best_file = metric_filename
             best_params = params_text
 
+        status = "SAVED" if keep_image else "DROPPED"
         print(
-            f"Current metric: {args.eval_metric.upper()}={metric_value:.4f} | "
+            f"[{status}] Current metric: {args.eval_metric.upper()}={metric_value:.4f} | "
             f"Best: {args.eval_metric.upper()}={best_metric:.4f} | "
             f"Best file: {best_file} | Best params: {best_params}"
         )
@@ -253,6 +259,12 @@ def parse_args():
         choices=["psnr"],
         default="psnr",
         help="Evaluation metric against input image. Higher is better.",
+    )
+    parser.add_argument(
+        "--psnr-threshold",
+        type=float,
+        default=0.0,
+        help="Only keep generated images whose PSNR is >= this threshold.",
     )
 
     parser.add_argument("--controlnet-model-id", default=None)
